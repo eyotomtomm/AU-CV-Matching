@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-multipart
+anthropic
+sqlalchemy
+psycopg[binary]
+alembic
+python-dotenv
+pydantic
+pydantic-settings
+pypdf2
+python-docx
+docx2txt
+python-dateutil
+openpyxl
