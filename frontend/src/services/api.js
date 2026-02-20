@@ -15,49 +15,49 @@ export const jobsApi = {
   uploadJD: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post('/jobs/upload-jd', formData, {
+    const response = await api.post('/api/jobs/upload-jd', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },
 
   create: async (jobData) => {
-    const response = await api.post('/jobs/', jobData);
+    const response = await api.post('/api/jobs/', jobData);
     return response.data;
   },
 
   list: async (status = null) => {
     const params = status ? { status } : {};
-    const response = await api.get('/jobs/', { params });
+    const response = await api.get('/api/jobs/', { params });
     return response.data;
   },
 
   get: async (jobId) => {
-    const response = await api.get(`/jobs/${jobId}`);
+    const response = await api.get(`/api/jobs/${jobId}`);
     return response.data;
   },
 
   update: async (jobId, data) => {
-    const response = await api.put(`/jobs/${jobId}`, data);
+    const response = await api.put(`/api/jobs/${jobId}`, data);
     return response.data;
   },
 
   delete: async (jobId) => {
-    await api.delete(`/jobs/${jobId}`);
+    await api.delete(`/api/jobs/${jobId}`);
   },
 
   process: async (jobId) => {
-    const response = await api.post(`/jobs/${jobId}/process`);
+    const response = await api.post(`/api/jobs/${jobId}/process`);
     return response.data;
   },
 
   getStatistics: async (jobId) => {
-    const response = await api.get(`/jobs/${jobId}/statistics`);
+    const response = await api.get(`/api/jobs/${jobId}/statistics`);
     return response.data;
   },
 
   complete: async (jobId) => {
-    const response = await api.post(`/jobs/${jobId}/complete`);
+    const response = await api.post(`/api/jobs/${jobId}/complete`);
     return response.data;
   },
 };
