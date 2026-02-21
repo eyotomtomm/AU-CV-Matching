@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import auLogo from '../assets/31823-img-au_logo.jpg';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -51,24 +52,15 @@ function Login() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div
+          <img
+            src={auLogo}
+            alt="African Union"
             style={{
-              width: '64px',
-              height: '64px',
-              background: '#FCDD09',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              color: '#009639',
-              fontSize: '24px',
+              height: '80px',
               margin: '0 auto 16px',
-              boxShadow: '0 4px 12px rgba(252, 221, 9, 0.3)',
+              display: 'block',
             }}
-          >
-            AU
-          </div>
+          />
           <h1
             style={{
               fontSize: '1.5rem',

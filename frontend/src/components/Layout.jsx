@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Briefcase, LogOut, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import auLogo from '../assets/31823-img-au_logo.jpg';
 
 function Layout({ children }) {
   const location = useLocation();
@@ -28,20 +29,16 @@ function Layout({ children }) {
       }}>
         <div className="container flex-between">
           <Link to="/" style={{ textDecoration: 'none', color: 'white', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              background: '#FCDD09',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              color: '#009639',
-              fontSize: '18px'
-            }}>
-              AU
-            </div>
+            <img
+              src={auLogo}
+              alt="African Union"
+              style={{
+                height: '40px',
+                borderRadius: '6px',
+                background: 'white',
+                padding: '2px',
+              }}
+            />
             <div>
               <h1 style={{ fontSize: '1.25rem', fontWeight: '600', margin: 0 }}>CV Matching System</h1>
               <p style={{ fontSize: '12px', opacity: 0.9, margin: 0 }}>African Union Commission</p>
