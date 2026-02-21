@@ -14,4 +14,4 @@ docx2txt
 python-dateutil
 openpyxl
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
