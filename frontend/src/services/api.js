@@ -62,6 +62,11 @@ export const jobsApi = {
     return response.data;
   },
 
+  extract: async (rawJdText) => {
+    const response = await api.post('/api/jobs/extract', { raw_jd_text: rawJdText });
+    return response.data;
+  },
+
   create: async (jobData) => {
     const response = await api.post('/api/jobs/', jobData);
     return response.data;

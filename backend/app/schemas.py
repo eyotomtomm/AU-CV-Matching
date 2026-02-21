@@ -22,6 +22,21 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
+# Extract Schemas
+class ExtractRequest(BaseModel):
+    raw_jd_text: str
+
+
+class ExtractResponse(BaseModel):
+    title: Optional[str] = None
+    reference_number: Optional[str] = None
+    grade_level: Optional[str] = None
+    department: Optional[str] = None
+    duty_station: Optional[str] = None
+    education_criteria: List[Dict[str, Any]] = []
+    experience_criteria: List[Dict[str, Any]] = []
+
+
 class GradeLevel(str, Enum):
     P1 = "P1"
     P2 = "P2"
@@ -58,6 +73,8 @@ class JobCreate(BaseModel):
     grade_level: GradeLevel
     description: Optional[str] = None
     raw_jd_text: str
+    education_criteria: Optional[List[Dict[str, Any]]] = None
+    experience_criteria: Optional[List[Dict[str, Any]]] = None
 
 
 class JobUpdate(BaseModel):

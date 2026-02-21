@@ -7,9 +7,11 @@ from ..database import get_db
 from ..models import Job, Candidate, MatchResult
 from ..schemas import (
     JobCreate, JobUpdate, JobResponse, JobListResponse,
-    ProcessJobResponse, StatisticsResponse
+    ProcessJobResponse, StatisticsResponse,
+    ExtractRequest, ExtractResponse
 )
 from ..services import MatchingService, CVParser
+from ..services.claude_service import ClaudeService
 
 router = APIRouter(prefix="/jobs", tags=["jobs"], dependencies=[Depends(get_current_user)])
 
@@ -39,6 +41,17 @@ async def upload_jd_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Failed to extract text: {str(e)}")
 
 
+@router.post("/extract", response_model=ExtractResponse)
+async def extract_job_data(request: ExtractRequest):
+    """Use AI to extract job metadata and criteria from JD text"""
+    claude_service = ClaudeService()
+    try:
+        result = await claude_service.extract_job_criteria(request.raw_jd_text)
+        return ExtractResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to extract job data: {str(e)}")
+
+
 @router.post("/", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(job_data: JobCreate, db: Session = Depends(get_db)):
     """Create a new job and extract criteria from job description"""
@@ -65,13 +78,25 @@ async def create_job(job_data: JobCreate, db: Session = Depends(get_db)):
         raw_jd_text=job_data.raw_jd_text
     )
 
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-
-    # Process job description with Claude to extract criteria
-    matching_service = MatchingService(db)
-    job = await matching_service.process_job_description(job)
+    # If criteria are pre-extracted, use them directly
+    if job_data.education_criteria and job_data.experience_criteria:
+        job.education_criteria = job_data.education_criteria
+        job.experience_criteria = job_data.experience_criteria
+        if job.grade_level.value in ["P5", "P6", "D1", "D2"]:
+            job.min_pass_mark = 70
+        else:
+            job.min_pass_mark = 60
+        job.status = "active"
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+    else:
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        # Process job description with Claude to extract criteria
+        matching_service = MatchingService(db)
+        job = await matching_service.process_job_description(job)
 
     return job
 

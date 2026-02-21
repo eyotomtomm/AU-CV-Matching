@@ -13,15 +13,24 @@ class ClaudeService:
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self.model = "claude-sonnet-4-20250514"
 
-    async def extract_job_criteria(self, job_description: str, job_title: str) -> Dict[str, Any]:
+    async def extract_job_criteria(self, job_description: str, job_title: str = None) -> Dict[str, Any]:
         """
-        Extract 10 scoring criteria from job description:
+        Extract job metadata and 10 scoring criteria from job description:
+        - Job details (title, reference number, grade level, department, duty station)
         - 3 Education criteria (30% weight)
         - 7 Experience criteria (70% weight)
         """
-        prompt = f"""Analyze this job description for the position of "{job_title}" at the African Union.
+        title_context = f' for the position of "{job_title}"' if job_title else ""
+        prompt = f"""Analyze this job description{title_context} at the African Union.
 
-Extract exactly 10 scoring criteria that will be used to evaluate candidates:
+First, extract the job metadata, then extract exactly 10 scoring criteria for evaluating candidates.
+
+JOB METADATA TO EXTRACT:
+- title: The official job title/position name
+- reference_number: Any vacancy/reference number (e.g., AUC/HRMD/2024/001), or null if not found
+- grade_level: The AU grade level. Must be one of: P1, P2, P3, P4, P5, P6, D1, D2. If not explicitly stated, infer from seniority level.
+- department: The department or division (e.g., "Political Affairs", "Peace and Security")
+- duty_station: The location/city (e.g., "Addis Ababa, Ethiopia")
 
 EDUCATION CRITERIA (3 items, will account for 30% of total score):
 1. Required Degree Level - What minimum degree is required? (e.g., Bachelor's, Master's, PhD)
@@ -29,13 +38,18 @@ EDUCATION CRITERIA (3 items, will account for 30% of total score):
 3. Certifications - Any professional certifications, licenses, or additional qualifications required?
 
 EXPERIENCE CRITERIA (7 items, will account for 70% of total score):
-Extract the 7 most important experience requirements from the job description. These should be specific, measurable criteria.
+Extract the 7 most important experience requirements from the job description. These should be specific, measurable criteria that summarize the key requirements.
 
 JOB DESCRIPTION:
 {job_description}
 
 Respond in this exact JSON format:
 {{
+    "title": "Official Job Title",
+    "reference_number": "AUC/XXX/2024/001 or null",
+    "grade_level": "P3",
+    "department": "Department name",
+    "duty_station": "City, Country",
     "education_criteria": [
         {{
             "id": "degree_level",

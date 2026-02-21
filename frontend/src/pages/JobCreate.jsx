@@ -1,18 +1,19 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Save, FileText, Check, Edit3, Plus, Trash2, RefreshCw, Upload, Type } from 'lucide-react';
+import { ArrowLeft, Save, FileText, Check, Plus, Trash2, RefreshCw, Upload, Type, Sparkles } from 'lucide-react';
 import { jobsApi } from '../services/api';
 
 function JobCreate() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Enter JD, 2: Review Criteria
-  const [jobId, setJobId] = useState(null);
-  const [inputMode, setInputMode] = useState('paste'); // 'paste' or 'upload'
+  const [step, setStep] = useState(1); // 1: Enter JD, 2: Review & Edit
+  const [inputMode, setInputMode] = useState('paste');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [rawJdText, setRawJdText] = useState('');
 
+  // Job metadata (auto-filled by AI, editable)
   const [formData, setFormData] = useState({
     title: '',
     reference_number: '',
@@ -28,28 +29,38 @@ function JobCreate() {
   const [educationCriteria, setEducationCriteria] = useState([]);
   const [experienceCriteria, setExperienceCriteria] = useState([]);
 
-  const createMutation = useMutation({
-    mutationFn: jobsApi.create,
+  // Extract mutation: calls AI to get metadata + criteria
+  const extractMutation = useMutation({
+    mutationFn: (text) => jobsApi.extract(text),
     onSuccess: (data) => {
-      setJobId(data.id);
+      setFormData(prev => ({
+        ...prev,
+        title: data.title || '',
+        reference_number: data.reference_number || '',
+        grade_level: data.grade_level || 'P3',
+        department: data.department || '',
+        duty_station: data.duty_station || '',
+        raw_jd_text: rawJdText,
+      }));
       setEducationCriteria(data.education_criteria || []);
       setExperienceCriteria(data.experience_criteria || []);
       setStep(2);
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ jobId, data }) => jobsApi.update(jobId, data),
-    onSuccess: () => {
-      navigate(`/jobs/${jobId}`);
+  // Create mutation: saves the job with all data
+  const createMutation = useMutation({
+    mutationFn: jobsApi.create,
+    onSuccess: (data) => {
+      navigate(`/jobs/${data.id}`);
     },
   });
 
-  // Upload JD file and extract text
+  // Upload JD file
   const uploadJDMutation = useMutation({
     mutationFn: jobsApi.uploadJD,
     onSuccess: (data) => {
-      setFormData(prev => ({ ...prev, raw_jd_text: data.text }));
+      setRawJdText(data.text);
       setUploadStatus({ type: 'success', message: `Extracted text from ${uploadedFile.name}` });
     },
     onError: (error) => {
@@ -57,57 +68,49 @@ function JobCreate() {
     },
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      processFile(file);
-    }
+    if (file) processFile(file);
   };
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file) {
-      processFile(file);
-    }
+    if (file) processFile(file);
   }, []);
 
   const processFile = (file) => {
     const allowedTypes = ['.pdf', '.doc', '.docx'];
     const ext = '.' + file.name.split('.').pop().toLowerCase();
-
     if (!allowedTypes.includes(ext)) {
       setUploadStatus({ type: 'error', message: 'Only PDF, DOC, DOCX files are allowed' });
       return;
     }
-
     setUploadedFile(file);
     setUploadStatus({ type: 'info', message: 'Extracting text...' });
     uploadJDMutation.mutate(file);
   };
 
-  const handleExtractCriteria = (e) => {
+  const handleExtract = (e) => {
     e.preventDefault();
-    if (!formData.raw_jd_text.trim()) {
+    if (!rawJdText.trim()) {
       setUploadStatus({ type: 'error', message: 'Please paste or upload a job description' });
       return;
     }
-    createMutation.mutate(formData);
+    extractMutation.mutate(rawJdText);
   };
 
-  const handleApproveCriteria = () => {
-    updateMutation.mutate({
-      jobId,
-      data: {
-        education_criteria: educationCriteria,
-        experience_criteria: experienceCriteria,
-      }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveJob = () => {
+    createMutation.mutate({
+      ...formData,
+      education_criteria: educationCriteria,
+      experience_criteria: experienceCriteria,
     });
   };
 
@@ -154,7 +157,7 @@ function JobCreate() {
     }]);
   };
 
-  // Step 1: Enter Job Details and JD
+  // Step 1: Upload/Paste JD text only
   if (step === 1) {
     return (
       <div>
@@ -164,191 +167,113 @@ function JobCreate() {
           </button>
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: '600' }}>Create New Job</h1>
-            <p className="text-gray">Step 1: Enter job details and provide the job description</p>
+            <p className="text-gray">Step 1: Provide the job description — AI will extract everything</p>
           </div>
         </div>
 
-        {createMutation.error && (
-          <div className="alert alert-error">
-            {createMutation.error.response?.data?.detail || createMutation.error.message}
+        {extractMutation.error && (
+          <div className="alert alert-error mb-4">
+            {extractMutation.error.response?.data?.detail || extractMutation.error.message}
           </div>
         )}
 
-        <form onSubmit={handleExtractCriteria}>
-          <div className="grid grid-2">
-            <div className="card">
-              <h2 className="card-title mb-4">Job Details</h2>
+        <form onSubmit={handleExtract}>
+          <div className="card">
+            <h2 className="card-title mb-4">
+              <FileText size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              Job Description
+            </h2>
 
-              <div className="form-group">
-                <label className="form-label">Job Title *</label>
-                <input
-                  type="text"
-                  name="title"
-                  className="form-input"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="e.g., Senior Policy Officer"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Reference Number</label>
-                <input
-                  type="text"
-                  name="reference_number"
-                  className="form-input"
-                  value={formData.reference_number}
-                  onChange={handleChange}
-                  placeholder="e.g., AUC/HRMD/2024/001"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Grade Level *</label>
-                <select
-                  name="grade_level"
-                  className="form-select"
-                  value={formData.grade_level}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="P1">P1</option>
-                  <option value="P2">P2</option>
-                  <option value="P3">P3</option>
-                  <option value="P4">P4</option>
-                  <option value="P5">P5</option>
-                  <option value="P6">P6</option>
-                  <option value="D1">D1</option>
-                  <option value="D2">D2</option>
-                </select>
-                <p className="text-small text-gray mt-2">
-                  P5+: 70% cutoff | P4 and below: 60% cutoff
-                </p>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <input
-                  type="text"
-                  name="department"
-                  className="form-input"
-                  value={formData.department}
-                  onChange={handleChange}
-                  placeholder="e.g., Political Affairs"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Duty Station</label>
-                <input
-                  type="text"
-                  name="duty_station"
-                  className="form-input"
-                  value={formData.duty_station}
-                  onChange={handleChange}
-                  placeholder="e.g., Addis Ababa, Ethiopia"
-                />
-              </div>
+            {/* Toggle between paste and upload */}
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                className={`btn ${inputMode === 'upload' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setInputMode('upload')}
+              >
+                <Upload size={16} /> Upload File
+              </button>
+              <button
+                type="button"
+                className={`btn ${inputMode === 'paste' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setInputMode('paste')}
+              >
+                <Type size={16} /> Paste Text
+              </button>
             </div>
 
-            <div className="card">
-              <h2 className="card-title mb-4">
-                <FileText size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                Job Description *
-              </h2>
-
-              {/* Toggle between paste and upload */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  type="button"
-                  className={`btn ${inputMode === 'upload' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setInputMode('upload')}
+            {inputMode === 'upload' && (
+              <>
+                <div
+                  className={`upload-area ${dragOver ? 'dragover' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('jd-file-input').click()}
+                  style={{ marginBottom: '16px' }}
                 >
-                  <Upload size={16} /> Upload File
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${inputMode === 'paste' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setInputMode('paste')}
-                >
-                  <Type size={16} /> Paste Text
-                </button>
-              </div>
-
-              {inputMode === 'upload' && (
-                <>
-                  <div
-                    className={`upload-area ${dragOver ? 'dragover' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    onClick={() => document.getElementById('jd-file-input').click()}
-                    style={{ marginBottom: '16px' }}
-                  >
-                    <input
-                      id="jd-file-input"
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                    />
-                    <Upload size={32} color="#009639" />
-                    <p className="mt-2">
-                      <strong>Drop JD file here</strong> or click to browse
+                  <input
+                    id="jd-file-input"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                  />
+                  <Upload size={32} color="#009639" />
+                  <p className="mt-2">
+                    <strong>Drop JD file here</strong> or click to browse
+                  </p>
+                  <p className="text-small text-gray">PDF, DOC, DOCX supported</p>
+                  {uploadedFile && (
+                    <p className="text-small mt-2" style={{ color: '#009639' }}>
+                      Selected: {uploadedFile.name}
                     </p>
-                    <p className="text-small text-gray">PDF, DOC, DOCX supported</p>
-                    {uploadedFile && (
-                      <p className="text-small mt-2" style={{ color: '#009639' }}>
-                        Selected: {uploadedFile.name}
-                      </p>
-                    )}
-                  </div>
-
-                  {uploadStatus && (
-                    <div className={`alert alert-${uploadStatus.type === 'error' ? 'error' : uploadStatus.type === 'success' ? 'success' : 'info'} mb-4`}>
-                      {uploadStatus.message}
-                    </div>
                   )}
-                </>
-              )}
+                </div>
 
-              <p className="text-gray mb-2 text-small">
-                {inputMode === 'upload' ? 'Extracted text (you can edit):' : 'Paste the full job description:'}
-              </p>
+                {uploadStatus && (
+                  <div className={`alert alert-${uploadStatus.type === 'error' ? 'error' : uploadStatus.type === 'success' ? 'success' : 'info'} mb-4`}>
+                    {uploadStatus.message}
+                  </div>
+                )}
+              </>
+            )}
 
-              <div className="form-group">
-                <textarea
-                  name="raw_jd_text"
-                  className="form-textarea"
-                  value={formData.raw_jd_text}
-                  onChange={handleChange}
-                  placeholder="Job description text will appear here..."
-                  style={{ minHeight: inputMode === 'upload' ? '200px' : '300px' }}
-                  required
-                />
-              </div>
+            <p className="text-gray mb-2 text-small">
+              {inputMode === 'upload' ? 'Extracted text (you can edit):' : 'Paste the full job description:'}
+            </p>
 
-              <p className="text-small text-gray">
-                AI will extract: 3 Education criteria (30%) + 7 Experience criteria (70%)
-              </p>
+            <div className="form-group">
+              <textarea
+                name="raw_jd_text"
+                className="form-textarea"
+                value={rawJdText}
+                onChange={(e) => setRawJdText(e.target.value)}
+                placeholder="Paste or upload the complete job description text here..."
+                style={{ minHeight: inputMode === 'upload' ? '250px' : '400px' }}
+                required
+              />
             </div>
+
+            <p className="text-small text-gray">
+              AI will extract: Job title, grade level, department, duty station, reference number, 3 Education criteria (30%) + 7 Experience criteria (70%)
+            </p>
           </div>
 
           <div className="flex gap-4 mt-4" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/')}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={createMutation.isPending || !formData.raw_jd_text.trim()}>
-              {createMutation.isPending ? (
+            <button type="submit" className="btn btn-primary" disabled={extractMutation.isPending || !rawJdText.trim()}>
+              {extractMutation.isPending ? (
                 <>
                   <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
-                  Extracting Criteria with AI...
+                  Extracting with AI...
                 </>
               ) : (
                 <>
-                  <RefreshCw size={18} />
-                  Extract Criteria
+                  <Sparkles size={18} />
+                  Extract with AI
                 </>
               )}
             </button>
@@ -358,7 +283,7 @@ function JobCreate() {
     );
   }
 
-  // Step 2: Review and Edit Criteria
+  // Step 2: Review & Edit all extracted data
   return (
     <div>
       <div className="flex gap-4 mb-4" style={{ alignItems: 'center' }}>
@@ -366,15 +291,96 @@ function JobCreate() {
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: '600' }}>Review Extracted Criteria</h1>
-          <p className="text-gray">Step 2: Review, edit, or approve the AI-extracted criteria</p>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: '600' }}>Review Extracted Data</h1>
+          <p className="text-gray">Step 2: Review and edit the AI-extracted job details and criteria</p>
         </div>
       </div>
 
+      {createMutation.error && (
+        <div className="alert alert-error mb-4">
+          {createMutation.error.response?.data?.detail || createMutation.error.message}
+        </div>
+      )}
+
       <div className="alert alert-info mb-4">
-        <strong>Review the criteria below.</strong> You can edit names, descriptions, or delete/add criteria before approving.
+        <strong>AI has extracted the job details and criteria below.</strong> Review and edit anything before saving.
       </div>
 
+      {/* Job Details Card */}
+      <div className="card mb-4">
+        <h2 className="card-title mb-4">Job Details</h2>
+        <div className="grid grid-2" style={{ gap: '16px' }}>
+          <div className="form-group">
+            <label className="form-label">Job Title *</label>
+            <input
+              type="text"
+              name="title"
+              className="form-input"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="e.g., Senior Policy Officer"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Reference Number</label>
+            <input
+              type="text"
+              name="reference_number"
+              className="form-input"
+              value={formData.reference_number}
+              onChange={handleChange}
+              placeholder="e.g., AUC/HRMD/2024/001"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Grade Level *</label>
+            <select
+              name="grade_level"
+              className="form-select"
+              value={formData.grade_level}
+              onChange={handleChange}
+              required
+            >
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
+              <option value="P3">P3</option>
+              <option value="P4">P4</option>
+              <option value="P5">P5</option>
+              <option value="P6">P6</option>
+              <option value="D1">D1</option>
+              <option value="D2">D2</option>
+            </select>
+            <p className="text-small text-gray mt-2">
+              P5+: 70% cutoff | P4 and below: 60% cutoff
+            </p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Department</label>
+            <input
+              type="text"
+              name="department"
+              className="form-input"
+              value={formData.department}
+              onChange={handleChange}
+              placeholder="e.g., Political Affairs"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Duty Station</label>
+            <input
+              type="text"
+              name="duty_station"
+              className="form-input"
+              value={formData.duty_station}
+              onChange={handleChange}
+              placeholder="e.g., Addis Ababa, Ethiopia"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Criteria */}
       <div className="grid grid-2">
         {/* Education Criteria */}
         <div className="card">
@@ -494,22 +500,22 @@ function JobCreate() {
 
       <div className="flex gap-4 mt-4" style={{ justifyContent: 'flex-end' }}>
         <button className="btn btn-secondary" onClick={() => setStep(1)}>
-          <ArrowLeft size={18} /> Back to Edit JD
+          <ArrowLeft size={18} /> Back to JD
         </button>
         <button
           className="btn btn-primary"
-          onClick={handleApproveCriteria}
-          disabled={updateMutation.isPending || educationCriteria.length === 0 || experienceCriteria.length === 0}
+          onClick={handleSaveJob}
+          disabled={createMutation.isPending || !formData.title.trim() || educationCriteria.length === 0 || experienceCriteria.length === 0}
         >
-          {updateMutation.isPending ? (
+          {createMutation.isPending ? (
             <>
               <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
               Saving...
             </>
           ) : (
             <>
-              <Check size={18} />
-              Approve & Continue
+              <Save size={18} />
+              Save Job
             </>
           )}
         </button>
