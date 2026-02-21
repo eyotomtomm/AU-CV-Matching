@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import JobCreate from './pages/JobCreate';
 import JobDetail from './pages/JobDetail';
@@ -21,15 +24,27 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Layout>
+        <AuthProvider>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/jobs/new" element={<JobCreate />} />
-            <Route path="/jobs/:jobId" element={<JobDetail />} />
-            <Route path="/jobs/:jobId/results" element={<Results />} />
-            <Route path="/results/:resultId" element={<CandidateDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/jobs/new" element={<JobCreate />} />
+                      <Route path="/jobs/:jobId" element={<JobDetail />} />
+                      <Route path="/jobs/:jobId/results" element={<Results />} />
+                      <Route path="/results/:resultId" element={<CandidateDetail />} />
+                    </Routes>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
           </Routes>
-        </Layout>
+        </AuthProvider>
       </Router>
     </QueryClientProvider>
   );

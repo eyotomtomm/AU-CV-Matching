@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
+from ..auth import get_current_user
 from ..database import get_db
 from ..models import Job, Candidate, MatchResult
 from ..schemas import (
@@ -10,7 +11,7 @@ from ..schemas import (
 )
 from ..services import MatchingService, CVParser
 
-router = APIRouter(prefix="/jobs", tags=["jobs"])
+router = APIRouter(prefix="/jobs", tags=["jobs"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("/upload-jd")

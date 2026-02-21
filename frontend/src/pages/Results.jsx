@@ -63,14 +63,14 @@ function Results() {
           </div>
         </div>
         <div className="flex gap-2">
-          <a href={reportsApi.downloadLonglistDocx(jobId)} className="btn btn-primary">
+          <button onClick={() => reportsApi.downloadLonglistDocx(jobId)} className="btn btn-primary">
             <Download size={18} />
             Download DOCX Report
-          </a>
-          <a href={reportsApi.downloadLonglistExcel(jobId)} className="btn btn-secondary">
+          </button>
+          <button onClick={() => reportsApi.downloadLonglistExcel(jobId)} className="btn btn-secondary">
             <Download size={18} />
             Download Excel
-          </a>
+          </button>
         </div>
       </div>
 
@@ -269,13 +269,13 @@ function Results() {
                       <Link to={`/results/${result.id}`} className="btn btn-secondary" style={{ padding: '6px 12px' }}>
                         Details
                       </Link>
-                      <a
-                        href={reportsApi.downloadCandidateReport(result.id)}
+                      <button
+                        onClick={() => reportsApi.downloadCandidateReport(result.id)}
                         className="btn btn-outline"
                         style={{ padding: '6px 12px' }}
                       >
                         <FileText size={14} />
-                      </a>
+                      </button>
                     </div>
                   </td>
                 </tr>

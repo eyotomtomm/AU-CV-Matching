@@ -5,6 +5,7 @@ import os
 import shutil
 from datetime import datetime
 
+from ..auth import get_current_user
 from ..database import get_db
 from ..models import Job, Candidate, MatchResult
 from ..schemas import (
@@ -12,7 +13,7 @@ from ..schemas import (
 )
 from ..services import CVParser, MatchingService
 
-router = APIRouter(prefix="/candidates", tags=["candidates"])
+router = APIRouter(prefix="/candidates", tags=["candidates"], dependencies=[Depends(get_current_user)])
 
 # Configure upload directory
 UPLOAD_DIR = "uploads/cvs"

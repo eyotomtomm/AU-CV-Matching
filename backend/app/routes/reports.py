@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from ..auth import get_current_user
 from ..database import get_db
 from ..models import Job, MatchResult
 from ..services import ReportService
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/{job_id}/longlist/docx")

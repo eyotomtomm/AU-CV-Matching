@@ -9,6 +9,47 @@ const api = axios.create({
   },
 });
 
+// Request interceptor: attach auth token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor: handle 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authApi = {
+  login: async (username, password) => {
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+    const response = await api.post('/api/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    return response.data;
+  },
+
+  getMe: async () => {
+    const response = await api.get('/api/auth/me');
+    return response.data;
+  },
+};
+
 // Jobs API
 export const jobsApi = {
   // Upload JD file and extract text
@@ -110,18 +151,60 @@ export const candidatesApi = {
   },
 };
 
-// Reports API
+// Reports API - uses authenticated blob downloads
 export const reportsApi = {
-  downloadLonglistDocx: (jobId) => {
-    return `${API_BASE_URL}/reports/${jobId}/longlist/docx`;
+  downloadLonglistDocx: async (jobId) => {
+    const response = await api.get(`/api/reports/${jobId}/longlist/docx`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '')
+      : `longlist_report_${jobId}.docx`;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 
-  downloadLonglistExcel: (jobId) => {
-    return `${API_BASE_URL}/reports/${jobId}/longlist/xlsx`;
+  downloadLonglistExcel: async (jobId) => {
+    const response = await api.get(`/api/reports/${jobId}/longlist/xlsx`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '')
+      : `candidate_rankings_${jobId}.xlsx`;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 
-  downloadCandidateReport: (resultId) => {
-    return `${API_BASE_URL}/reports/candidate/${resultId}/docx`;
+  downloadCandidateReport: async (resultId) => {
+    const response = await api.get(`/api/reports/candidate/${resultId}/docx`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '')
+      : `evaluation_report_${resultId}.docx`;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 };
 

@@ -111,14 +111,14 @@ function JobDetail() {
                 <FileText size={18} />
                 View Results
               </Link>
-              <a href={reportsApi.downloadLonglistDocx(jobId)} className="btn btn-secondary">
+              <button onClick={() => reportsApi.downloadLonglistDocx(jobId)} className="btn btn-secondary">
                 <Download size={18} />
                 DOCX
-              </a>
-              <a href={reportsApi.downloadLonglistExcel(jobId)} className="btn btn-secondary">
+              </button>
+              <button onClick={() => reportsApi.downloadLonglistExcel(jobId)} className="btn btn-secondary">
                 <Download size={18} />
                 Excel
-              </a>
+              </button>
             </>
           )}
         </div>

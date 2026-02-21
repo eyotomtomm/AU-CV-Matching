@@ -1,12 +1,20 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Briefcase, FileText, Settings } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Briefcase, LogOut, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 function Layout({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -40,7 +48,7 @@ function Layout({ children }) {
             </div>
           </Link>
 
-          <nav style={{ display: 'flex', gap: '8px' }}>
+          <nav style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Link
               to="/"
               className={`btn ${isActive('/') && location.pathname === '/' ? 'btn-secondary' : ''}`}
@@ -63,6 +71,42 @@ function Layout({ children }) {
               <Briefcase size={18} />
               New Job
             </Link>
+
+            {user && (
+              <>
+                <div style={{
+                  width: '1px',
+                  height: '24px',
+                  background: 'rgba(255,255,255,0.3)',
+                  margin: '0 4px',
+                }} />
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  opacity: 0.9,
+                  padding: '0 8px',
+                }}>
+                  <User size={14} />
+                  {user.full_name || user.username}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="btn"
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                  }}
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </>
+            )}
           </nav>
         </div>
       </header>

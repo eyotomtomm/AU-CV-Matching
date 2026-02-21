@@ -41,10 +41,10 @@ function CandidateDetail() {
             </p>
           </div>
         </div>
-        <a href={reportsApi.downloadCandidateReport(resultId)} className="btn btn-primary">
+        <button onClick={() => reportsApi.downloadCandidateReport(resultId)} className="btn btn-primary">
           <Download size={18} />
           Download Detailed Report
-        </a>
+        </button>
       </div>
 
       {/* Score Summary */}

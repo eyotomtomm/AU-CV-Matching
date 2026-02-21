@@ -4,6 +4,24 @@ from datetime import datetime, date
 from enum import Enum
 
 
+# Auth Schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: Optional[str]
+    full_name: Optional[str]
+    is_active: bool
+    is_admin: bool
+
+    class Config:
+        from_attributes = True
+
+
 class GradeLevel(str, Enum):
     P1 = "P1"
     P2 = "P2"

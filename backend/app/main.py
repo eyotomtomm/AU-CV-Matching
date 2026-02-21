@@ -2,14 +2,35 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from .database import engine, Base
-from .routes import jobs_router, candidates_router, reports_router
+from .auth import get_password_hash
+from .database import engine, Base, SessionLocal
+from .models import User
+from .routes import jobs_router, candidates_router, reports_router, auth_router
+
+
+def seed_admin_user():
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.is_admin == True).first()
+        if not existing:
+            admin = User(
+                username="admin",
+                email="admin@au.int",
+                hashed_password=get_password_hash("admin123"),
+                full_name="System Administrator",
+                is_active=True,
+                is_admin=True,
+            )
+            db.add(admin)
+            db.commit()
+    finally:
+        db.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create database tables on startup
     Base.metadata.create_all(bind=engine)
+    seed_admin_user()
     yield
 
 
@@ -53,6 +74,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
 app.include_router(candidates_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
