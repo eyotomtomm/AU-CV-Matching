@@ -113,7 +113,7 @@ export const candidatesApi = {
   uploadSingle: async (jobId, file) => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post(`/candidates/${jobId}/upload`, formData, {
+    const response = await api.post(`/api/candidates/${jobId}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -124,35 +124,35 @@ export const candidatesApi = {
     files.forEach((file) => {
       formData.append('files', file);
     });
-    const response = await api.post(`/candidates/${jobId}/upload-bulk`, formData, {
+    const response = await api.post(`/api/candidates/${jobId}/upload-bulk`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },
 
   list: async (jobId) => {
-    const response = await api.get(`/candidates/${jobId}/list`);
+    const response = await api.get(`/api/candidates/${jobId}/list`);
     return response.data;
   },
 
   processAll: async (jobId) => {
-    const response = await api.post(`/candidates/${jobId}/process-all`);
+    const response = await api.post(`/api/candidates/${jobId}/process-all`);
     return response.data;
   },
 
   getResults: async (jobId, longlistOnly = false) => {
     const params = { longlist_only: longlistOnly };
-    const response = await api.get(`/candidates/${jobId}/results`, { params });
+    const response = await api.get(`/api/candidates/${jobId}/results`, { params });
     return response.data;
   },
 
   getResult: async (resultId) => {
-    const response = await api.get(`/candidates/result/${resultId}`);
+    const response = await api.get(`/api/candidates/result/${resultId}`);
     return response.data;
   },
 
   delete: async (candidateId) => {
-    await api.delete(`/candidates/${candidateId}`);
+    await api.delete(`/api/candidates/${candidateId}`);
   },
 };
 
