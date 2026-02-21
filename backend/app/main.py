@@ -84,7 +84,7 @@ app.include_router(reports_router, prefix="/api")
 def root():
     return {
         "message": "African Union CV Matching System API",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "documentation": "/docs"
     }
 
